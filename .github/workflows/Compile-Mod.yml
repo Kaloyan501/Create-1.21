@@ -1,0 +1,53 @@
+name: Compile Minecraft Mod
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to compile from'
+        required: true
+        default: 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the specified branch
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.branch }}
+
+    # Set up JDK 17
+    - name: Set up JDK 17
+      uses: actions/setup-java@v2
+      with:
+        java-version: '17'
+        distribution: 'adopt'
+
+    # Cache Gradle dependencies
+    - name: Cache Gradle packages
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/gradle.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    # Set execute permissions on gradlew
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+
+    # Run Gradle build with increased verbosity
+    - name: Build with Gradle
+      run: ./gradlew build --info
+
+    # Upload build artifact
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifact
+        path: build/libs/*.jar  # Adjust this path to where your artifact is generated
